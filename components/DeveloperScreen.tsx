@@ -1,14 +1,15 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-
-import { profiles } from '../data/profiles';
+import { Profile } from '../data/profiles';
 
 type DeveloperScreenProps = {
+  profiles: Profile[];
   onBack: () => void;
   onAddProfile: () => void;
   onEditProfile: (profileId: number) => void;
 };
 
 export default function DeveloperScreen({
+  profiles,
   onBack,
   onAddProfile,
   onEditProfile,

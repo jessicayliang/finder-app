@@ -15,15 +15,17 @@ import Slider from '@react-native-community/slider';
 
 import {
   Profile,
-  profiles,
   updateProfile,
-  updateUserProfile,
-  userProfile,
+  saveUserProfile,
 } from '../data/profiles';
 
 type ProfileEditorProps = {
   profileId: number | null;
+  profiles: Profile[];
+  userProfile: Profile | null;
   isUserProfile?: boolean;
+  onProfilesChange: (profiles: Profile[]) => void;
+  onUserProfileChange: (profile: Profile | null) => void;
   onBack: () => void;
 };
 
@@ -83,7 +85,11 @@ const interestOptions = [
 
 export default function ProfileEditor({
   profileId,
+  profiles,
+  userProfile,
   isUserProfile = false,
+  onProfilesChange,
+  onUserProfileChange,
   onBack,
 }: ProfileEditorProps) {
 
@@ -168,23 +174,53 @@ export default function ProfileEditor({
     initialProfile.photos ?? []
   );
 
+
+
+  console.log(
+    '🔥 PROFILE EDITOR IS OPEN',
+    isUserProfile,
+    profileId,
+    initialProfile.photos,
+    photos
+  );
+
   const [showSaveButton, setShowSaveButton] =
     useState(false);
 
-  const saveUpdatesImmediately = (
+  const saveUpdatesImmediately = async (
     updates: Partial<Profile>
   ) => {
-    if (isUserProfile) {
-      updateUserProfile(updates);
-      return;
-    }
+    try {
+      if (isUserProfile) {
+        const updatedProfile = await saveUserProfile(updates);
 
-    if (profileId !== null) {
-      updateProfile(profileId, updates);
+        onUserProfileChange(updatedProfile);
+        return;
+      }
+
+      if (profileId !== null) {
+        const updatedProfile = await updateProfile(
+          profileId,
+          updates
+        );
+
+        onProfilesChange(
+          profiles.map((profile) =>
+            profile.id === profileId
+              ? updatedProfile
+              : profile
+          )
+        );
+      }
+    } catch (error) {
+      console.error(
+        'FAILED TO SAVE PROFILE UPDATE:',
+        error
+      );
     }
   };
 
-  const saveTextFields = () => {
+  const saveTextFields = async () => {
     const updates: Partial<Profile> = {
       name,
       age: Number(age) || 18,
@@ -195,9 +231,24 @@ export default function ProfileEditor({
     };
 
     if (isUserProfile) {
-      updateUserProfile(updates);
+      const updatedProfile =
+        await saveUserProfile(updates);
+
+      onUserProfileChange(updatedProfile);
     } else if (profileId !== null) {
-      updateProfile(profileId, updates);
+      const updatedProfile =
+        await updateProfile(
+          profileId,
+          updates
+        );
+
+      onProfilesChange(
+        profiles.map((profile) =>
+          profile.id === profileId
+            ? updatedProfile
+            : profile
+        )
+      );
     } else {
       const newProfile: Profile = {
         id:
@@ -319,17 +370,41 @@ export default function ProfileEditor({
     // PHOTO FUNCTIONS
     // ----------------------------------------
 
-    const savePhotos = (newPhotos: string[]) => {
+    const savePhotos = async (
+      newPhotos: string[]
+    ) => {
       setPhotos(newPhotos);
 
-      if (isUserProfile) {
-        updateUserProfile({
-          photos: newPhotos,
-        });
-      } else if (profileId !== null) {
-        updateProfile(profileId, {
-          photos: newPhotos,
-        });
+      try {
+        if (isUserProfile) {
+          const updatedProfile =
+            await saveUserProfile({
+              photos: newPhotos,
+            });
+
+          onUserProfileChange(updatedProfile);
+          return;
+        }
+
+        if (profileId !== null) {
+          const updatedProfile =
+            await updateProfile(profileId, {
+              photos: newPhotos,
+            });
+
+          onProfilesChange(
+            profiles.map((profile) =>
+              profile.id === profileId
+                ? updatedProfile
+                : profile
+            )
+          );
+        }
+      } catch (error) {
+        console.error(
+          'FAILED TO SAVE PHOTOS:',
+          error
+        );
       }
     };
 

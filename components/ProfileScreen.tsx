@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Image,
@@ -13,11 +13,12 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../lib/supabase';
 
 import {
   Profile,
-  updateUserProfile,
-  userProfile,
+  fetchUserProfile,
+  saveUserProfile,
 } from '../data/profiles';
 
 type ProfileScreenProps = {
@@ -82,62 +83,86 @@ export default function ProfileScreen({
   onOpenDeveloperMode,
 }: ProfileScreenProps) {
 
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const data = await fetchUserProfile();
+
+        console.log('USER PROFILE FROM SUPABASE:', data);
+
+        if (!data) {
+          console.error(
+            'No user profile found in Supabase.'
+          );
+          return;
+        }
+
+        setProfile(data);
+
+        setName(data.name);
+        setAge(String(data.age));
+        setBio(data.bio ?? '');
+        setJob(data.job ?? '');
+        setSchool(data.school ?? '');
+        setLocation(data.location ?? '');
+
+        setGender(data.gender ?? '');
+        setLookingFor(data.lookingFor ?? '');
+
+        setMinAge(data.minAge ?? 18);
+        setMaxAge(data.maxAge ?? 35);
+        setMaxDistance(data.maxDistance ?? 25);
+
+        setInterests(data.interests ?? []);
+
+        setDrinking(data.drinking ?? '');
+        setSmoking(data.smoking ?? '');
+        setPets(data.pets ?? '');
+      } catch (error) {
+        console.error(
+          'FAILED TO LOAD USER PROFILE:',
+          error
+        );
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    loadUserProfile();
+  }, []);
+
   // ----------------------------------------
   // IVY'S PROFILE
   // ----------------------------------------
 
-  const [name, setName] = useState(userProfile.name);
-  const [age, setAge] = useState(String(userProfile.age));
-  const [bio, setBio] = useState(userProfile.bio ?? '');
-  const [job, setJob] = useState(userProfile.job ?? '');
-  const [school, setSchool] = useState(userProfile.school ?? '');
-  const [location, setLocation] = useState(
-    userProfile.location ?? ''
+  const [profile, setProfile] = useState<Profile | null>(
+    null
   );
 
-  const [gender, setGender] = useState(
-    userProfile.gender ?? ''
-  );
+  const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [bio, setBio] = useState('');
+  const [job, setJob] = useState('');
+  const [school, setSchool] = useState('');
+  const [location, setLocation] = useState('');
 
-  const [lookingFor, setLookingFor] = useState(
-    userProfile.lookingFor ?? ''
-  );
+  const [gender, setGender] = useState('');
+  const [lookingFor, setLookingFor] = useState('');
 
-  const [minAge, setMinAge] = useState(
-    Math.max(
-      18,
-      Math.min(100, userProfile.minAge ?? 18)
-    )
-  );
+  const [minAge, setMinAge] = useState(18);
+  const [maxAge, setMaxAge] = useState(35);
+  const [maxDistance, setMaxDistance] = useState(25);
 
-  const [maxAge, setMaxAge] = useState(
-    Math.max(
-      18,
-      Math.min(100, userProfile.maxAge ?? 35)
-    )
-  );
+  const [interests, setInterests] = useState<string[]>([]);
 
-  const [maxDistance, setMaxDistance] = useState(
-    userProfile.maxDistance ?? 25
-  );
-
-  const [interests, setInterests] = useState(
-    userProfile.interests ?? []
-  );
-
-  const [drinking, setDrinking] = useState(
-    userProfile.drinking ?? ''
-  );
-
-  const [smoking, setSmoking] = useState(
-    userProfile.smoking ?? ''
-  );
-
-  const [pets, setPets] = useState(
-    userProfile.pets ?? ''
-  );
+  const [drinking, setDrinking] = useState('');
+  const [smoking, setSmoking] = useState('');
+  const [pets, setPets] = useState('');
 
   const [photoVersion, setPhotoVersion] = useState(0);
+
+  const [loadingProfile, setLoadingProfile] =
+    useState(true);
 
   // Save button only appears when a text field is focused.
   const [showSaveButton, setShowSaveButton] =
@@ -147,42 +172,76 @@ export default function ProfileScreen({
   // SAVE TEXT FIELDS
   // ----------------------------------------
 
-  const saveTextFields = () => {
-    const updates: Partial<Profile> = {
-      name,
-      age: Number(age) || 18,
-      bio,
-      job,
-      school,
-      location,
-    };
+  const saveTextFields = async () => {
+    try {
+      const updates: Partial<Profile> = {
+        name,
+        age: Number(age) || 18,
+        bio,
+        job,
+        school,
+        location,
+      };
 
-    updateUserProfile(updates);
+      const updatedProfile =
+        await saveUserProfile(updates);
 
-    setShowSaveButton(false);
+      setProfile(updatedProfile);
+
+      setShowSaveButton(false);
+
+      Alert.alert(
+        'Profile Saved',
+        'Your profile has been saved.'
+      );
+    } catch (error) {
+      console.error(
+        'FAILED TO SAVE PROFILE:',
+        error
+      );
+
+      Alert.alert(
+        'Error',
+        'Could not save your profile.'
+      );
+    }
   };
 
   // ----------------------------------------
   // SELECTION HANDLERS
   // ----------------------------------------
 
-  const selectGender = (value: string) => {
+  const selectGender = async (value: string) => {
     setGender(value);
 
-    updateUserProfile({
-      gender: value,
-    });
+    try {
+      await saveUserProfile({
+        gender: value,
+      });
+    } catch (error) {
+      console.error(
+        'Failed to save gender:',
+        error
+      );
+    }
   };
 
-  const selectLookingFor = (value: string) => {
+  const selectLookingFor = async (value: string) => {
     setLookingFor(value);
 
-    updateUserProfile({
-      lookingFor: value,
-    });
+    try {
+      await saveUserProfile({
+        lookingFor: value,
+      });
+    } catch (error) {
+      console.error(
+        'Failed to save looking for:',
+        error
+      );
+    }
   };
 
-  const selectMinAge = (value: number) => {
+  const selectMinAge = async (value: number) => {
     const newValue = Math.min(
       Math.round(value),
       maxAge
@@ -190,12 +249,19 @@ export default function ProfileScreen({
 
     setMinAge(newValue);
 
-    updateUserProfile({
-      minAge: newValue,
-    });
+    try {
+      await saveUserProfile({
+        minAge: newValue,
+      });
+    } catch (error) {
+      console.error(
+        'Failed to save minimum age:',
+        error
+      );
+    }
   };
 
-  const selectMaxAge = (value: number) => {
+  const selectMaxAge = async (value: number) => {
     const newValue = Math.max(
       Math.round(value),
       minAge
@@ -203,44 +269,79 @@ export default function ProfileScreen({
 
     setMaxAge(newValue);
 
-    updateUserProfile({
-      maxAge: newValue,
-    });
+    try {
+      await saveUserProfile({
+        maxAge: newValue,
+      });
+    } catch (error) {
+      console.error(
+        'Failed to save maximum age:',
+        error
+      );
+    }
   };
 
-  const selectDistance = (value: number) => {
+  const selectDistance = async (value: number) => {
     setMaxDistance(value);
 
-    updateUserProfile({
-      maxDistance: value,
-    });
+    try {
+      await saveUserProfile({
+        maxDistance: value,
+      });
+    } catch (error) {
+      console.error(
+        'Failed to save distance:',
+        error
+      );
+    }
   };
 
-  const selectDrinking = (value: string) => {
+  const selectDrinking = async (value: string) => {
     setDrinking(value);
 
-    updateUserProfile({
-      drinking: value,
-    });
+    try {
+      await saveUserProfile({
+        drinking: value,
+      });
+    } catch (error) {
+      console.error(
+        'Failed to save drinking:',
+        error
+      );
+    }
   };
 
-  const selectSmoking = (value: string) => {
+  const selectSmoking = async (value: string) => {
     setSmoking(value);
 
-    updateUserProfile({
-      smoking: value,
-    });
+    try {
+      await saveUserProfile({
+        smoking: value,
+      });
+    } catch (error) {
+      console.error(
+        'Failed to save smoking:',
+        error
+      );
+    }
   };
 
-  const selectPets = (value: string) => {
+  const selectPets = async (value: string) => {
     setPets(value);
 
-    updateUserProfile({
-      pets: value,
-    });
+    try {
+      await saveUserProfile({
+        pets: value,
+      });
+    } catch (error) {
+      console.error(
+        'Failed to save pets:',
+        error
+      );
+    }
   };
 
-  const toggleInterest = (interest: string) => {
+  const toggleInterest = async (interest: string) => {
     const newInterests = interests.includes(interest)
       ? interests.filter(
           (item) => item !== interest
@@ -249,9 +350,16 @@ export default function ProfileScreen({
 
     setInterests(newInterests);
 
-    updateUserProfile({
-      interests: newInterests,
-    });
+    try {
+      await saveUserProfile({
+        interests: newInterests,
+      });
+    } catch (error) {
+      console.error(
+        'Failed to save interests:',
+        error
+      );
+    }
   };
 
     const addPhoto = async (index: number) => {
@@ -282,20 +390,34 @@ export default function ProfileScreen({
                 });
 
               if (!result.canceled) {
-                const newPhotos = [
-                  ...userProfile.photos,
-                ];
+                const currentPhotos = profile?.photos ?? [];
 
-                newPhotos[index] =
-                  result.assets[0].uri;
+                const newPhotos = [...currentPhotos];
 
-                updateUserProfile({
-                  photos: newPhotos,
-                });
+                newPhotos[index] = result.assets[0].uri;
 
-                setPhotoVersion(
-                  (version) => version + 1
-                );
+                try {
+                  const updatedProfile =
+                    await saveUserProfile({
+                      photos: newPhotos,
+                    });
+
+                  setProfile(updatedProfile);
+
+                  setPhotoVersion(
+                    (version) => version + 1
+                  );
+                } catch (error) {
+                  console.error(
+                    'FAILED TO SAVE PHOTO:',
+                    error
+                  );
+
+                  Alert.alert(
+                    'Error',
+                    'Could not save your photo.'
+                  );
+                }
               }
             },
           },
@@ -321,20 +443,34 @@ export default function ProfileScreen({
                 });
 
               if (!result.canceled) {
-                const newPhotos = [
-                  ...userProfile.photos,
-                ];
+                const currentPhotos = profile?.photos ?? [];
 
-                newPhotos[index] =
-                  result.assets[0].uri;
+                const newPhotos = [...currentPhotos];
 
-                updateUserProfile({
-                  photos: newPhotos,
-                });
+                newPhotos[index] = result.assets[0].uri;
 
-                setPhotoVersion(
-                  (version) => version + 1
-                );
+                try {
+                  const updatedProfile =
+                    await saveUserProfile({
+                      photos: newPhotos,
+                    });
+
+                  setProfile(updatedProfile);
+
+                  setPhotoVersion(
+                    (version) => version + 1
+                  );
+                } catch (error) {
+                  console.error(
+                    'FAILED TO SAVE PHOTO:',
+                    error
+                  );
+
+                  Alert.alert(
+                    'Error',
+                    'Could not save your photo.'
+                  );
+                }
               }
             },
           },
@@ -344,6 +480,39 @@ export default function ProfileScreen({
           },
         ]
       );
+    };
+
+    const removePhoto = async (index: number) => {
+      const currentPhotos = profile?.photos ?? [];
+
+      if (!currentPhotos[index]) {
+        return;
+      }
+
+      const newPhotos = [...currentPhotos];
+
+      // Remove this photo and shift later photos forward.
+      newPhotos.splice(index, 1);
+
+      try {
+        const updatedProfile = await saveUserProfile({
+          photos: newPhotos,
+        });
+
+        setProfile(updatedProfile);
+
+        setPhotoVersion((version) => version + 1);
+      } catch (error) {
+        console.error(
+          'FAILED TO REMOVE PHOTO:',
+          error
+        );
+
+        Alert.alert(
+          'Error',
+          'Could not remove your photo.'
+        );
+      }
     };
 
   // ----------------------------------------
@@ -376,10 +545,10 @@ export default function ProfileScreen({
         <View style={styles.header}>
 
           <View style={styles.photo}>
-            {userProfile.photos.length > 0 ? (
+            {(profile?.photos ?? []).length > 0 ? (
               <Image
                 source={{
-                  uri: userProfile.photos[0],
+                  uri: profile?.photos[0],
                 }}
                 style={styles.profilePhoto}
               />
@@ -422,14 +591,36 @@ export default function ProfileScreen({
             {Array.from({ length: 9 }).map(
               (_, index) => {
                 const photo =
-                  userProfile.photos[index];
+                  profile?.photos[index];
 
                 return (
                   <Pressable
                     key={`${index}-${photoVersion}`}
                     style={styles.photoSlot}
                     onPress={() => {
-                      addPhoto(index);
+                      if (photo) {
+                        Alert.alert(
+                          'Photo',
+                          'What would you like to do?',
+                          [
+                            {
+                              text: 'Change Photo',
+                              onPress: () => addPhoto(index),
+                            },
+                            {
+                              text: 'Remove Photo',
+                              style: 'destructive',
+                              onPress: () => removePhoto(index),
+                            },
+                            {
+                              text: 'Cancel',
+                              style: 'cancel',
+                            },
+                          ]
+                        );
+                      } else {
+                        addPhoto(index);
+                      }
                     }}
                   >
                     {photo ? (

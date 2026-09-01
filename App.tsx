@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 
-import { profiles } from './data/profiles';
+import {
+  fetchProfiles,
+  fetchUserProfile,
+  Profile,
+} from './data/profiles';
 import ProfileCard from './components/ProfileCard';
 import ProfileScreen from './components/ProfileScreen';
 import DeveloperScreen from './components/DeveloperScreen';
@@ -14,11 +18,47 @@ type Screen =
   | 'profileEditor';
 
 export default function App() {
-  const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
-  const [screen, setScreen] = useState<Screen>('swipe');
+
+  const [userProfile, setUserProfile] =
+    useState<Profile | null>(null);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [currentProfileIndex, setCurrentProfileIndex] =
+    useState(0);
+
+  const [screen, setScreen] =
+    useState<Screen>('swipe');
 
   const [editingProfileId, setEditingProfileId] =
     useState<number | null>(null);
+
+  const [loadingProfiles, setLoadingProfiles] =
+    useState(true);
+
+    useEffect(() => {
+      const loadProfiles = async () => {
+        try {
+          const [data, user] = await Promise.all([
+            fetchProfiles(),
+            fetchUserProfile(),
+          ]);
+
+          console.log('LOADED PROFILES:', data);
+          console.log('USER PROFILE:', user);
+
+          setProfiles(data);
+          setUserProfile(user);
+        } catch (error) {
+          console.error(
+            'FAILED TO LOAD PROFILES:',
+            error
+          );
+        } finally {
+          setLoadingProfiles(false);
+        }
+      };
+
+      loadProfiles();
+    }, []);
 
   /*
    * Always keep the index inside the profiles array.
@@ -45,6 +85,8 @@ export default function App() {
 
       {/* SWIPE SCREEN */}
 
+      {/* SWIPE SCREEN */}
+
       {screen === 'swipe' && (
         <>
           <View style={styles.header}>
@@ -53,87 +95,97 @@ export default function App() {
             </Text>
           </View>
 
-          <View style={styles.cardStack}>
-
-            {/* BACKGROUND CARD */}
-
-            {nextProfile && (
-              <ProfileCard
-                key={`background-${nextProfile.id}`}
-                profile={nextProfile}
-                onSwipe={() => {}}
-                isBackground
-                stackOffset={8}
-              />
-            )}
-
-            {/* CURRENT CARD */}
-
-            {currentProfile && (
-              <ProfileCard
-                key={`current-${currentProfile.id}`}
-                profile={currentProfile}
-                onSwipe={() => {
-                  if (profiles.length > 0) {
-                    setCurrentProfileIndex(
-                      (currentIndex) =>
-                        (currentIndex + 1) %
-                        profiles.length
-                    );
-                  }
-                }}
-              />
-            )}
-
-          </View>
-
-          <View style={styles.actions}>
-
-            <View
-              style={[
-                styles.actionButton,
-                styles.rewindButton,
-              ]}
-            >
-              <Text style={styles.rewindSymbol}>
-                ↻
+          {loadingProfiles ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>
+                Loading profiles...
               </Text>
             </View>
+          ) : (
+            <>
+              <View style={styles.cardStack}>
 
-            <View
-              style={[
-                styles.actionButton,
-                styles.passButton,
-              ]}
-            >
-              <Text style={styles.passSymbol}>
-                ×
-              </Text>
-            </View>
+                {/* BACKGROUND CARD */}
 
-            <View
-              style={[
-                styles.actionButton,
-                styles.likeButton,
-              ]}
-            >
-              <Text style={styles.likeSymbol}>
-                ✓
-              </Text>
-            </View>
+                {nextProfile && (
+                  <ProfileCard
+                    key={`background-${nextProfile.id}`}
+                    profile={nextProfile}
+                    onSwipe={() => {}}
+                    isBackground
+                    stackOffset={8}
+                  />
+                )}
 
-            <View
-              style={[
-                styles.actionButton,
-                styles.sendButton,
-              ]}
-            >
-              <Text style={styles.sendSymbol}>
-                ⌯⌲
-              </Text>
-            </View>
+                {/* CURRENT CARD */}
 
-          </View>
+                {currentProfile && (
+                  <ProfileCard
+                    key={`current-${currentProfile.id}`}
+                    profile={currentProfile}
+                    onSwipe={() => {
+                      if (profiles.length > 0) {
+                        setCurrentProfileIndex(
+                          (currentIndex) =>
+                            (currentIndex + 1) %
+                            profiles.length
+                        );
+                      }
+                    }}
+                  />
+                )}
+
+              </View>
+
+              <View style={styles.actions}>
+
+                <View
+                  style={[
+                    styles.actionButton,
+                    styles.rewindButton,
+                  ]}
+                >
+                  <Text style={styles.rewindSymbol}>
+                    ↻
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.actionButton,
+                    styles.passButton,
+                  ]}
+                >
+                  <Text style={styles.passSymbol}>
+                    ×
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.actionButton,
+                    styles.likeButton,
+                  ]}
+                >
+                  <Text style={styles.likeSymbol}>
+                    ✓
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.actionButton,
+                    styles.sendButton,
+                  ]}
+                >
+                  <Text style={styles.sendSymbol}>
+                    ⌯⌲
+                  </Text>
+                </View>
+
+              </View>
+            </>
+          )}
         </>
       )}
 
@@ -151,6 +203,8 @@ export default function App() {
 
       {screen === 'developer' && (
         <DeveloperScreen
+          profiles={profiles}
+
           onBack={() => setScreen('profile')}
 
           onAddProfile={() => {
@@ -170,6 +224,10 @@ export default function App() {
       {screen === 'profileEditor' && (
         <ProfileEditor
           profileId={editingProfileId}
+          profiles={profiles}
+          userProfile={userProfile}
+          onProfilesChange={setProfiles}
+          onUserProfileChange={setUserProfile}
           onBack={() => {
             setScreen('developer');
           }}
@@ -367,5 +425,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#111111',
+  },
+
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  loadingText: {
+    fontSize: 16,
+    color: '#777777',
   },
 });

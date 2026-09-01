@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 
 import { Profile } from '../data/profiles';
-import { updateUserProfile, userProfile } from '../data/profiles';
+import { saveUserProfile, updateProfile } from '../data/profiles';
 
 type ProfileCardProps = {
   profile: Profile;
