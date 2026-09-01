@@ -97,7 +97,6 @@ export default function ProfileEditor({
   onBack,
 }: ProfileEditorProps) {
 
-  console.log('🚨 PROFILE EDITOR FILE IS RUNNING 🚨');
 
   const [createdProfileId, setCreatedProfileId] =
       useState<number | null>(null);
@@ -209,7 +208,6 @@ export default function ProfileEditor({
     }
 
     try {
-      console.log('🟢 CREATING NEW PROFILE...');
 
       const newProfile = await createProfile({
         name,
@@ -230,11 +228,6 @@ export default function ProfileEditor({
         smoking,
         pets,
       });
-
-      console.log(
-        '🟢 NEW PROFILE CREATED:',
-        newProfile
-      );
 
       setCreatedProfileId(newProfile.id);
 
@@ -283,17 +276,8 @@ export default function ProfileEditor({
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log(
-                '🗑️ DELETING PROFILE:',
-                idToDelete
-              );
 
               await deleteProfile(idToDelete);
-
-              console.log(
-                '🟢 PROFILE DELETED:',
-                idToDelete
-              );
 
               onProfilesChange((currentProfiles) =>
                 currentProfiles.filter(
@@ -401,11 +385,6 @@ export default function ProfileEditor({
 
       const updatedProfile =
         await updateProfile(id, updates);
-
-      console.log(
-        '🟢 PROFILE TEXT SAVED:',
-        updatedProfile
-      );
 
       onProfilesChange((currentProfiles) => {
         const exists = currentProfiles.some(
@@ -525,10 +504,6 @@ export default function ProfileEditor({
         newPhotos: string[]
       ) => {
         try {
-          console.log(
-            '📸 SAVING PHOTOS:',
-            newPhotos
-          );
 
           // USER PROFILE
           if (isUserProfile) {
@@ -540,11 +515,6 @@ export default function ProfileEditor({
             setPhotos(updatedProfile.photos);
             onUserProfileChange(updatedProfile);
 
-            console.log(
-              '🟢 USER PHOTOS SAVED:',
-              updatedProfile.photos
-            );
-
             return;
           }
 
@@ -555,11 +525,6 @@ export default function ProfileEditor({
             return;
           }
 
-          console.log(
-            '📸 SAVING PHOTOS FOR PROFILE:',
-            id
-          );
-
           const updatedProfile =
             await updateProfile(
               id,
@@ -567,11 +532,6 @@ export default function ProfileEditor({
                 photos: newPhotos,
               }
             );
-
-          console.log(
-            '🟢 DEVELOPER PHOTOS SAVED:',
-            updatedProfile
-          );
 
           setPhotos(updatedProfile.photos);
 
@@ -615,11 +575,6 @@ export default function ProfileEditor({
           return;
         }
 
-        console.log(
-          '🗑️ REMOVING PHOTO:',
-          photoUrl
-        );
-
         const newPhotos = photos.filter(
           (_, photoIndex) => photoIndex !== index
         );
@@ -629,10 +584,6 @@ export default function ProfileEditor({
         await savePhotos(newPhotos);
 
         setPhotos(newPhotos);
-
-        console.log(
-          '🟢 PHOTO REMOVED'
-        );
 
       } catch (error) {
         console.error(
@@ -705,10 +656,6 @@ export default function ProfileEditor({
         index: number
       ) => {
         try {
-          console.log(
-            '📸 LOCAL URI:',
-            uri
-          );
 
           const actualProfileId =
             await ensureProfileExists();
@@ -726,21 +673,11 @@ export default function ProfileEditor({
             return;
           }
 
-          console.log(
-            '📸 UPLOADING FOR PROFILE:',
-            uploadId
-          );
-
           const photoUrl =
             await uploadProfilePhoto(
               uri,
               actualProfileId
             );
-
-          console.log(
-            '📸 SUPABASE PHOTO URL:',
-            photoUrl
-          );
 
           const newPhotos = [...photos];
 
@@ -782,10 +719,6 @@ export default function ProfileEditor({
               }
 
               try {
-                console.log(
-                  '📸 LOCAL URI:',
-                  uri
-                );
 
                 // IMPORTANT:
                 // Create the developer profile first
@@ -797,21 +730,11 @@ export default function ProfileEditor({
                   return;
                 }
 
-                console.log(
-                  '📸 UPLOADING FOR PROFILE:',
-                  uploadId
-                );
-
                 const photoUrl =
                   await uploadProfilePhoto(
                     uri,
                     uploadId
                   );
-
-                console.log(
-                  '📸 SUPABASE PHOTO URL:',
-                  photoUrl
-                );
 
                 const newPhotos = [...photos];
 
@@ -850,10 +773,6 @@ export default function ProfileEditor({
               }
 
               try {
-                console.log(
-                  '📸 LOCAL URI:',
-                  uri
-                );
 
                 // IMPORTANT:
                 // Create the developer profile first
@@ -865,21 +784,11 @@ export default function ProfileEditor({
                   return;
                 }
 
-                console.log(
-                  '📸 UPLOADING FOR PROFILE:',
-                  uploadId
-                );
-
                 const photoUrl =
                   await uploadProfilePhoto(
                     uri,
                     uploadId
                   );
-
-                console.log(
-                  '📸 SUPABASE PHOTO URL:',
-                  photoUrl
-                );
 
                 const newPhotos = [...photos];
 
@@ -915,27 +824,6 @@ export default function ProfileEditor({
         ]
       );
     };
-
-    console.log(
-      '🗑️ DELETE BUTTON STATE:',
-      {
-        isUserProfile,
-        profileId,
-        createdProfileId,
-        isNewProfile,
-        shouldShowDelete:
-          !isUserProfile &&
-          (profileId !== null || createdProfileId !== null),
-      }
-    );
-  console.log('🗑️ RENDER DELETE:', {
-    isUserProfile,
-    profileId,
-    createdProfileId,
-    shouldRender:
-      !isUserProfile &&
-      (profileId !== null || createdProfileId !== null),
-  });
 
   return (
     <KeyboardAvoidingView

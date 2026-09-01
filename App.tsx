@@ -254,11 +254,6 @@ export default function App() {
                 pets: '',
               });
 
-              console.log(
-                '🟢 NEW PROFILE CREATED FROM APP:',
-                newProfile
-              );
-
               setProfiles((currentProfiles) => [
                 ...currentProfiles,
                 newProfile,
