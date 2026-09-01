@@ -284,6 +284,12 @@ export const updateProfile = async (
 ): Promise<Profile> => {
   const supabaseUpdates = profileToSupabase(updates);
 
+  console.log(
+      '🟡 UPDATING PROFILE:',
+      profileId,
+      supabaseUpdates
+    );
+
   const { data, error } = await supabase
     .from('profiles')
     .update(supabaseUpdates)
@@ -293,11 +299,67 @@ export const updateProfile = async (
     .single();
 
   if (error) {
-    console.error('Error updating profile:', error);
+    console.error(
+          '🔴 ERROR UPDATING PROFILE:',
+          error
+        );
     throw error;
   }
 
+  if (!data) {
+      console.error(
+        '🔴 NO PROFILE FOUND TO UPDATE:',
+        profileId
+      );
+
+      throw new Error(
+        `Profile ${profileId} does not exist in Supabase`
+      );
+    }
+
+    console.log(
+      '🟢 PROFILE UPDATED:',
+      data
+    );
+
   return supabaseToProfile(data);
+};
+
+export const deleteProfile = async (
+  profileId: number
+): Promise<void> => {
+  try {
+    console.log(
+      '🗑️ DELETING PROFILE:',
+      profileId
+    );
+
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', profileId)
+      .eq('is_user', false);
+
+    if (error) {
+      console.error(
+        '🔴 ERROR DELETING PROFILE:',
+        error
+      );
+      throw error;
+    }
+
+    console.log(
+      '🟢 PROFILE DELETED:',
+      profileId
+    );
+
+  } catch (error) {
+    console.error(
+      '🔴 FAILED TO DELETE PROFILE:',
+      error
+    );
+    throw error;
+  }
 };
 
 export const uploadProfilePhoto = async (
@@ -394,24 +456,56 @@ export const deleteProfilePhoto = async (
 // CREATE DEVELOPER PROFILE
 // ----------------------------------------
 
+// ----------------------------------------
+// CREATE DEVELOPER PROFILE
+// ----------------------------------------
+
 export const createProfile = async (
   profile: Partial<Profile>
 ): Promise<Profile> => {
-  const supabaseProfile = profileToSupabase({
-    ...profile,
-    isUser: false,
-  });
+  try {
+    const supabaseProfile = profileToSupabase({
+      ...profile,
+      isUser: false,
+    });
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .insert(supabaseProfile)
-    .select()
-    .single();
+    // IMPORTANT:
+    // Let Supabase generate the ID.
+    delete supabaseProfile.id;
 
-  if (error) {
-    console.error('Error creating profile:', error);
+    console.log(
+      '🟢 CREATING PROFILE IN SUPABASE:',
+      supabaseProfile
+    );
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert(supabaseProfile)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error(
+        '🔴 ERROR CREATING PROFILE:',
+        error
+      );
+
+      throw error;
+    }
+
+    console.log(
+      '🟢 PROFILE CREATED IN SUPABASE:',
+      data
+    );
+
+    return supabaseToProfile(data);
+
+  } catch (error) {
+    console.error(
+      '🔴 FAILED TO CREATE PROFILE:',
+      error
+    );
+
     throw error;
   }
-
-  return supabaseToProfile(data);
 };

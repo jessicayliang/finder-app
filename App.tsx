@@ -5,6 +5,7 @@ import {
   fetchProfiles,
   fetchUserProfile,
   Profile,
+  createProfile,
 } from './data/profiles';
 import ProfileCard from './components/ProfileCard';
 import ProfileScreen from './components/ProfileScreen';
@@ -30,6 +31,9 @@ export default function App() {
 
   const [editingProfileId, setEditingProfileId] =
     useState<number | null>(null);
+
+  const [editingUserProfile, setEditingUserProfile] =
+    useState(false);
 
   const [loadingProfiles, setLoadingProfiles] =
     useState(true);
@@ -207,13 +211,52 @@ export default function App() {
 
           onBack={() => setScreen('profile')}
 
-          onAddProfile={() => {
-            setEditingProfileId(null);
-            setScreen('profileEditor');
+          onAddProfile={async () => {
+            try {
+              const newProfile = await createProfile({
+                name: '',
+                age: 18,
+                distance: 0,
+                photos: [],
+                bio: '',
+                job: '',
+                school: '',
+                location: '',
+                gender: '',
+                lookingFor: '',
+                minAge: 18,
+                maxAge: 35,
+                maxDistance: 25,
+                interests: [],
+                drinking: '',
+                smoking: '',
+                pets: '',
+              });
+
+              console.log(
+                '🟢 NEW PROFILE CREATED FROM APP:',
+                newProfile
+              );
+
+              setProfiles((currentProfiles) => [
+                ...currentProfiles,
+                newProfile,
+              ]);
+
+              setEditingProfileId(newProfile.id);
+              setScreen('profileEditor');
+
+            } catch (error) {
+              console.error(
+                '🔴 FAILED TO CREATE NEW PROFILE:',
+                error
+              );
+            }
           }}
 
           onEditProfile={(profileId) => {
             setEditingProfileId(profileId);
+            setEditingUserProfile(false);
             setScreen('profileEditor');
           }}
         />
@@ -223,9 +266,15 @@ export default function App() {
 
       {screen === 'profileEditor' && (
         <ProfileEditor
+          key={
+            editingUserProfile
+              ? 'user-profile'
+              : `profile-${editingProfileId}`
+          }
           profileId={editingProfileId}
           profiles={profiles}
           userProfile={userProfile}
+          isUserProfile={editingUserProfile}
           onProfilesChange={setProfiles}
           onUserProfileChange={setUserProfile}
           onBack={() => {

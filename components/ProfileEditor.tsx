@@ -19,6 +19,8 @@ import {
   saveUserProfile,
   uploadProfilePhoto,
   deleteProfilePhoto,
+  createProfile,
+  deleteProfile,
 } from '../data/profiles';
 
 type ProfileEditorProps = {
@@ -26,7 +28,7 @@ type ProfileEditorProps = {
   profiles: Profile[];
   userProfile: Profile | null;
   isUserProfile?: boolean;
-  onProfilesChange: (profiles: Profile[]) => void;
+  onProfilesChange: React.Dispatch<React.SetStateAction<Profile[]>>;
   onUserProfileChange: (profile: Profile | null) => void;
   onBack: () => void;
 };
@@ -95,6 +97,11 @@ export default function ProfileEditor({
   onBack,
 }: ProfileEditorProps) {
 
+  console.log('🚨 PROFILE EDITOR FILE IS RUNNING 🚨');
+
+  const [createdProfileId, setCreatedProfileId] =
+      useState<number | null>(null);
+
   const editingProfile = isUserProfile
     ? userProfile
     : profileId !== null
@@ -103,8 +110,14 @@ export default function ProfileEditor({
         )
       : undefined;
 
+  const activeProfileId =
+    profileId ?? createdProfileId;
+
+  const effectiveProfileId =
+    profileId ?? createdProfileId;
+
   const isNewProfile =
-    !isUserProfile && profileId === null;
+    !isUserProfile && effectiveProfileId === null;
 
   const initialProfile: Profile = editingProfile ?? {
     id: -1,
@@ -176,44 +189,170 @@ export default function ProfileEditor({
     initialProfile.photos ?? []
   );
 
-
-
-  console.log(
-    '🔥 PROFILE EDITOR IS OPEN',
-    isUserProfile,
-    profileId,
-    initialProfile.photos,
-    photos
-  );
-
   const [showSaveButton, setShowSaveButton] =
     useState(false);
+
+  const ensureProfileExists = async (): Promise<number | null> => {
+    // User profile already exists
+    if (isUserProfile) {
+      return userProfile?.id ?? null;
+    }
+
+    // Existing developer profile
+    if (profileId !== null) {
+      return profileId;
+    }
+
+    // New profile was already created during this editing session
+    if (createdProfileId !== null) {
+      return createdProfileId;
+    }
+
+    try {
+      console.log('🟢 CREATING NEW PROFILE...');
+
+      const newProfile = await createProfile({
+        name,
+        age: Number(age) || 18,
+        distance: 0,
+        photos: [],
+        bio,
+        job,
+        school,
+        location,
+        gender,
+        lookingFor,
+        minAge,
+        maxAge,
+        maxDistance,
+        interests,
+        drinking,
+        smoking,
+        pets,
+      });
+
+      console.log(
+        '🟢 NEW PROFILE CREATED:',
+        newProfile
+      );
+
+      setCreatedProfileId(newProfile.id);
+
+      onProfilesChange((currentProfiles) => [
+        ...currentProfiles,
+        newProfile,
+      ]);
+
+      return newProfile.id;
+    } catch (error) {
+      console.error(
+        '🔴 FAILED TO CREATE NEW PROFILE:',
+        error
+      );
+
+      Alert.alert(
+        'Error',
+        'Could not create profile.'
+      );
+
+      return null;
+    }
+  };
+
+  const handleDeleteProfile = () => {
+    if (isUserProfile) {
+      return;
+    }
+
+    const idToDelete = profileId ?? createdProfileId;
+
+    if (idToDelete === null) {
+      return;
+    }
+
+    Alert.alert(
+      'Delete Profile',
+      'Are you sure you want to permanently delete this profile?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log(
+                '🗑️ DELETING PROFILE:',
+                idToDelete
+              );
+
+              await deleteProfile(idToDelete);
+
+              console.log(
+                '🟢 PROFILE DELETED:',
+                idToDelete
+              );
+
+              onProfilesChange((currentProfiles) =>
+                currentProfiles.filter(
+                  (profile) => profile.id !== idToDelete
+                )
+              );
+
+              setCreatedProfileId(null);
+
+              onBack();
+
+            } catch (error) {
+              console.error(
+                '🔴 FAILED TO DELETE PROFILE:',
+                error
+              );
+
+              Alert.alert(
+                'Error',
+                'Could not delete this profile.'
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const saveUpdatesImmediately = async (
     updates: Partial<Profile>
   ) => {
     try {
+      // USER PROFILE
       if (isUserProfile) {
-        const updatedProfile = await saveUserProfile(updates);
+        const updatedProfile =
+          await saveUserProfile(updates);
 
         onUserProfileChange(updatedProfile);
         return;
       }
 
-      if (profileId !== null) {
-        const updatedProfile = await updateProfile(
-          profileId,
-          updates
-        );
+      // Make sure a new developer profile exists first
+      const id = await ensureProfileExists();
 
-        onProfilesChange(
-          profiles.map((profile) =>
-            profile.id === profileId
-              ? updatedProfile
-              : profile
-          )
-        );
+      if (id === null) {
+        return;
       }
+
+      const updatedProfile =
+        await updateProfile(id, updates);
+
+      onProfilesChange((currentProfiles) =>
+        currentProfiles.map((profile) =>
+          profile.id === updatedProfile.id
+            ? updatedProfile
+            : profile
+        )
+      );
+
     } catch (error) {
       console.error(
         'FAILED TO SAVE PROFILE UPDATE:',
@@ -223,73 +362,83 @@ export default function ProfileEditor({
   };
 
   const saveTextFields = async () => {
-    const updates: Partial<Profile> = {
-      name,
-      age: Number(age) || 18,
-      bio,
-      job,
-      school,
-      location,
-    };
-
-    if (isUserProfile) {
-      const updatedProfile =
-        await saveUserProfile(updates);
-
-      onUserProfileChange(updatedProfile);
-    } else if (profileId !== null) {
-      const updatedProfile =
-        await updateProfile(
-          profileId,
-          updates
-        );
-
-      onProfilesChange(
-        profiles.map((profile) =>
-          profile.id === profileId
-            ? updatedProfile
-            : profile
-        )
-      );
-    } else {
-      const newProfile: Profile = {
-        id:
-          profiles.length > 0
-            ? Math.max(
-                ...profiles.map(
-                  (profile) => profile.id
-                )
-              ) + 1
-            : 1,
-
+    try {
+      const updates: Partial<Profile> = {
         name,
         age: Number(age) || 18,
-        distance: 0,
-        photos: [],
-
         bio,
         job,
         school,
         location,
-
         gender,
         lookingFor,
-
         minAge,
         maxAge,
         maxDistance,
-
         interests,
-
         drinking,
         smoking,
         pets,
       };
 
-      profiles.push(newProfile);
-    }
+      // USER PROFILE
+      if (isUserProfile) {
+        const updatedProfile =
+          await saveUserProfile(updates);
 
-    setShowSaveButton(false);
+        onUserProfileChange(updatedProfile);
+        setShowSaveButton(false);
+
+        return;
+      }
+
+      // NEW OR EXISTING DEVELOPER PROFILE
+      const id = await ensureProfileExists();
+
+      if (id === null) {
+        return;
+      }
+
+      const updatedProfile =
+        await updateProfile(id, updates);
+
+      console.log(
+        '🟢 PROFILE TEXT SAVED:',
+        updatedProfile
+      );
+
+      onProfilesChange((currentProfiles) => {
+        const exists = currentProfiles.some(
+          (profile) => profile.id === updatedProfile.id
+        );
+
+        if (exists) {
+          return currentProfiles.map((profile) =>
+            profile.id === updatedProfile.id
+              ? updatedProfile
+              : profile
+          );
+        }
+
+        return [
+          ...currentProfiles,
+          updatedProfile,
+        ];
+      });
+
+      setShowSaveButton(false);
+
+    } catch (error) {
+      console.error(
+        '🔴 FAILED TO SAVE PROFILE:',
+        error
+      );
+
+      Alert.alert(
+        'Error',
+        'Could not save profile.'
+      );
+    }
   };
 
   const selectGender = (value: string) => {
@@ -368,61 +517,133 @@ export default function ProfileEditor({
     }
   };
 
-    // ----------------------------------------
-    // PHOTO FUNCTIONS
-    // ----------------------------------------
+      // ----------------------------------------
+      // PHOTO FUNCTIONS
+      // ----------------------------------------
 
-    const savePhotos = async (
-      newPhotos: string[]
-    ) => {
-      try {
-        console.log('📸 SAVING PHOTOS:', newPhotos);
-
-        if (isUserProfile) {
-          const updatedProfile =
-            await saveUserProfile({
-              photos: newPhotos,
-            });
-
-          setPhotos(updatedProfile.photos);
-          onUserProfileChange(updatedProfile);
-
+      const savePhotos = async (
+        newPhotos: string[]
+      ) => {
+        try {
           console.log(
-            '📸 USER PHOTOS SAVED:',
-            updatedProfile.photos
+            '📸 SAVING PHOTOS:',
+            newPhotos
           );
 
+          // USER PROFILE
+          if (isUserProfile) {
+            const updatedProfile =
+              await saveUserProfile({
+                photos: newPhotos,
+              });
+
+            setPhotos(updatedProfile.photos);
+            onUserProfileChange(updatedProfile);
+
+            console.log(
+              '🟢 USER PHOTOS SAVED:',
+              updatedProfile.photos
+            );
+
+            return;
+          }
+
+          // NEW OR EXISTING DEVELOPER PROFILE
+          const id = await ensureProfileExists();
+
+          if (id === null) {
+            return;
+          }
+
+          console.log(
+            '📸 SAVING PHOTOS FOR PROFILE:',
+            id
+          );
+
+          const updatedProfile =
+            await updateProfile(
+              id,
+              {
+                photos: newPhotos,
+              }
+            );
+
+          console.log(
+            '🟢 DEVELOPER PHOTOS SAVED:',
+            updatedProfile
+          );
+
+          setPhotos(updatedProfile.photos);
+
+          onProfilesChange((currentProfiles) => {
+            const exists = currentProfiles.some(
+              (profile) => profile.id === updatedProfile.id
+            );
+
+            if (exists) {
+              return currentProfiles.map((profile) =>
+                profile.id === updatedProfile.id
+                  ? updatedProfile
+                  : profile
+              );
+            }
+
+            return [
+              ...currentProfiles,
+              updatedProfile,
+            ];
+          });
+
+        } catch (error) {
+          console.error(
+            '🔴 FAILED TO SAVE PHOTOS:',
+            error
+          );
+
+          Alert.alert(
+            'Error',
+            'Could not save your photo.'
+          );
+        }
+      };
+
+    const removePhoto = async (index: number) => {
+      try {
+        const photoUrl = photos[index];
+
+        if (!photoUrl) {
           return;
         }
 
-        if (profileId !== null) {
-          const updatedProfile =
-            await updateProfile(profileId, {
-              photos: newPhotos,
-            });
+        console.log(
+          '🗑️ REMOVING PHOTO:',
+          photoUrl
+        );
 
-          setPhotos(updatedProfile.photos);
+        const newPhotos = photos.filter(
+          (_, photoIndex) => photoIndex !== index
+        );
 
-          onProfilesChange(
-            profiles.map((profile) =>
-              profile.id === profileId
-                ? updatedProfile
-                : profile
-            )
-          );
+        await deleteProfilePhoto(photoUrl);
 
-          console.log(
-            '📸 DEVELOPER PHOTOS SAVED:',
-            updatedProfile.photos
-          );
-        }
+        await savePhotos(newPhotos);
+
+        setPhotos(newPhotos);
+
+        console.log(
+          '🟢 PHOTO REMOVED'
+        );
+
       } catch (error) {
         console.error(
-          'FAILED TO SAVE PHOTOS:',
+          '🔴 FAILED TO REMOVE PHOTO:',
           error
         );
 
-        throw error;
+        Alert.alert(
+          'Error',
+          'Could not remove photo.'
+        );
       }
     };
 
@@ -479,6 +700,73 @@ export default function ProfileEditor({
       return null;
     };
 
+      const uploadAndSavePhoto = async (
+        uri: string,
+        index: number
+      ) => {
+        try {
+          console.log(
+            '📸 LOCAL URI:',
+            uri
+          );
+
+          const actualProfileId =
+            await ensureProfileExists();
+
+          const uploadId =
+            isUserProfile
+              ? userProfile!.id
+              : activeProfileId;
+
+          if (uploadId === null || uploadId === undefined) {
+            Alert.alert(
+              'Save Profile First',
+              'Please save the profile before adding photos.'
+            );
+            return;
+          }
+
+          console.log(
+            '📸 UPLOADING FOR PROFILE:',
+            uploadId
+          );
+
+          const photoUrl =
+            await uploadProfilePhoto(
+              uri,
+              actualProfileId
+            );
+
+          console.log(
+            '📸 SUPABASE PHOTO URL:',
+            photoUrl
+          );
+
+          const newPhotos = [...photos];
+
+          newPhotos[index] = photoUrl;
+
+          const cleanedPhotos = newPhotos.filter(
+            (photo) => photo !== ''
+          );
+
+          setPhotos(cleanedPhotos);
+
+          await savePhotos(cleanedPhotos);
+
+        } catch (error) {
+          console.error(
+            'FAILED TO SAVE PHOTO:',
+            error
+          );
+
+          Alert.alert(
+            'Error',
+            'Could not save your photo.'
+          );
+        }
+      };
+
     const addPhoto = async (index: number) => {
       Alert.alert(
         'Add Photo',
@@ -494,21 +782,30 @@ export default function ProfileEditor({
               }
 
               try {
-                console.log('📸 LOCAL URI:', uri);
+                console.log(
+                  '📸 LOCAL URI:',
+                  uri
+                );
 
-                const currentProfileId = isUserProfile
-                  ? userProfile?.id ?? 0
-                  : profileId ?? 0;
+                // IMPORTANT:
+                // Create the developer profile first
+                // if this is a brand-new profile.
+                const uploadId =
+                  await ensureProfileExists();
+
+                if (uploadId === null) {
+                  return;
+                }
 
                 console.log(
                   '📸 UPLOADING FOR PROFILE:',
-                  currentProfileId
+                  uploadId
                 );
 
                 const photoUrl =
                   await uploadProfilePhoto(
                     uri,
-                    currentProfileId
+                    uploadId
                   );
 
                 console.log(
@@ -520,11 +817,15 @@ export default function ProfileEditor({
 
                 newPhotos[index] = photoUrl;
 
-                await savePhotos(
+                const cleanedPhotos =
                   newPhotos.filter(
                     (photo) => photo !== ''
-                  )
-                );
+                  );
+
+                setPhotos(cleanedPhotos);
+
+                await savePhotos(cleanedPhotos);
+
               } catch (error) {
                 console.error(
                   'FAILED TO SAVE PHOTO:',
@@ -533,7 +834,7 @@ export default function ProfileEditor({
 
                 Alert.alert(
                   'Error',
-                  'Could not upload your photo.'
+                  'Could not save your photo.'
                 );
               }
             },
@@ -549,25 +850,34 @@ export default function ProfileEditor({
               }
 
               try {
-                console.log('📸 LOCAL CAMERA URI:', uri);
+                console.log(
+                  '📸 LOCAL URI:',
+                  uri
+                );
 
-                const currentProfileId = isUserProfile
-                  ? userProfile?.id ?? 0
-                  : profileId ?? 0;
+                // IMPORTANT:
+                // Create the developer profile first
+                // if this is a brand-new profile.
+                const uploadId =
+                  await ensureProfileExists();
+
+                if (uploadId === null) {
+                  return;
+                }
 
                 console.log(
-                  '📸 UPLOADING CAMERA PHOTO FOR PROFILE:',
-                  currentProfileId
+                  '📸 UPLOADING FOR PROFILE:',
+                  uploadId
                 );
 
                 const photoUrl =
                   await uploadProfilePhoto(
                     uri,
-                    currentProfileId
+                    uploadId
                   );
 
                 console.log(
-                  '📸 SUPABASE CAMERA PHOTO URL:',
+                  '📸 SUPABASE PHOTO URL:',
                   photoUrl
                 );
 
@@ -575,11 +885,15 @@ export default function ProfileEditor({
 
                 newPhotos[index] = photoUrl;
 
-                await savePhotos(
+                const cleanedPhotos =
                   newPhotos.filter(
                     (photo) => photo !== ''
-                  )
-                );
+                  );
+
+                setPhotos(cleanedPhotos);
+
+                await savePhotos(cleanedPhotos);
+
               } catch (error) {
                 console.error(
                   'FAILED TO SAVE PHOTO:',
@@ -588,7 +902,7 @@ export default function ProfileEditor({
 
                 Alert.alert(
                   'Error',
-                  'Could not upload your photo.'
+                  'Could not save your photo.'
                 );
               }
             },
@@ -602,54 +916,26 @@ export default function ProfileEditor({
       );
     };
 
-    const removePhoto = (index: number) => {
-      Alert.alert(
-        'Remove Photo',
-        'Remove this photo from your profile?',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-
-          {
-            text: 'Remove',
-            style: 'destructive',
-
-            onPress: async () => {
-              const photoToRemove = photos[index];
-
-              if (!photoToRemove) {
-                return;
-              }
-
-              try {
-                await deleteProfilePhoto(
-                  photoToRemove
-                );
-
-                const newPhotos = photos.filter(
-                  (_, photoIndex) =>
-                    photoIndex !== index
-                );
-
-                await savePhotos(newPhotos);
-              } catch (error) {
-                console.error(
-                  'FAILED TO REMOVE PHOTO:',
-                  error
-                );
-
-                Alert.alert(
-                  'Error',
-                  'Could not remove your photo.'
-                );
-              }
-            },
-          },
-        ]
-      );
-    };
+    console.log(
+      '🗑️ DELETE BUTTON STATE:',
+      {
+        isUserProfile,
+        profileId,
+        createdProfileId,
+        isNewProfile,
+        shouldShowDelete:
+          !isUserProfile &&
+          (profileId !== null || createdProfileId !== null),
+      }
+    );
+  console.log('🗑️ RENDER DELETE:', {
+    isUserProfile,
+    profileId,
+    createdProfileId,
+    shouldRender:
+      !isUserProfile &&
+      (profileId !== null || createdProfileId !== null),
+  });
 
   return (
     <KeyboardAvoidingView
@@ -801,6 +1087,22 @@ export default function ProfileEditor({
                   </View>
 
                 </View>
+
+                {/* DELETE PROFILE */}
+
+                {!isUserProfile &&
+                  (profileId !== null || createdProfileId !== null) && (
+                    <View style={styles.deleteSection}>
+                      <Pressable
+                        style={styles.deleteButton}
+                        onPress={handleDeleteProfile}
+                      >
+                        <Text style={styles.deleteText}>
+                          Delete Profile
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
 
         {/* BASIC INFORMATION */}
 
@@ -1367,7 +1669,7 @@ const styles = StyleSheet.create({
 
   content: {
     paddingHorizontal: 20,
-    paddingBottom: 50,
+    paddingBottom: 100,
   },
 
   contentWithSaveButton: {
@@ -1616,5 +1918,29 @@ const styles = StyleSheet.create({
       color: '#ffffff',
       fontSize: 11,
       fontWeight: '700',
+    },
+
+    deleteButton: {
+      height: 54,
+      borderRadius: 27,
+      borderWidth: 2,
+      borderColor: '#ff3b30',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 10,
+      marginBottom: 30,
+      backgroundColor: '#fff0f0',
+      width: '100%',
+    },
+
+    deleteText: {
+      color: '#ff3b30',
+      fontSize: 16,
+      fontWeight: '700',
+    },
+
+    deleteSection: {
+      marginTop: 30,
+      marginBottom: 40,
     },
 });
