@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export type Profile = {
   id: number;
@@ -283,10 +284,6 @@ export const updateProfile = async (
 ): Promise<Profile> => {
   const supabaseUpdates = profileToSupabase(updates);
 
-  console.log('UPDATING PROFILE:', profileId);
-  console.log('UPDATES:', updates);
-  console.log('SUPABASE UPDATES:', supabaseUpdates);
-
   const { data, error } = await supabase
     .from('profiles')
     .update(supabaseUpdates)
@@ -294,9 +291,6 @@ export const updateProfile = async (
     .eq('is_user', false)
     .select()
     .single();
-
-  console.log('SUPABASE UPDATE RESULT:', data);
-  console.log('SUPABASE UPDATE ERROR:', error);
 
   if (error) {
     console.error('Error updating profile:', error);
@@ -306,6 +300,95 @@ export const updateProfile = async (
   return supabaseToProfile(data);
 };
 
+export const uploadProfilePhoto = async (
+  uri: string,
+  profileId: number
+): Promise<string> => {
+  try {
+    const fileName = `${profileId}/${Date.now()}.jpg`;
+
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: 'base64',
+    });
+
+    const binaryString = atob(base64);
+
+    const bytes = new Uint8Array(binaryString.length);
+
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    const { error: uploadError } =
+      await supabase.storage
+        .from('profile-photos')
+        .upload(fileName, bytes, {
+          contentType: 'image/jpeg',
+          upsert: false,
+        });
+
+    if (uploadError) {
+      console.error(
+        'Error uploading profile photo:',
+        uploadError
+      );
+      throw uploadError;
+    }
+
+    const { data } =
+      supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(fileName);
+
+    return data.publicUrl;
+  } catch (error) {
+    console.error(
+      'FAILED TO UPLOAD PROFILE PHOTO:',
+      error
+    );
+    throw error;
+  }
+};
+
+export const deleteProfilePhoto = async (
+  photoUrl: string
+): Promise<void> => {
+  try {
+    const marker = '/storage/v1/object/public/profile-photos/';
+
+    const index = photoUrl.indexOf(marker);
+
+    if (index === -1) {
+      console.warn(
+        'Could not determine storage path from photo URL:',
+        photoUrl
+      );
+      return;
+    }
+
+    const filePath = photoUrl.substring(
+      index + marker.length
+    );
+
+    const { error } = await supabase.storage
+      .from('profile-photos')
+      .remove([filePath]);
+
+    if (error) {
+      console.error(
+        'Error deleting profile photo from storage:',
+        error
+      );
+      throw error;
+    }
+  } catch (error) {
+    console.error(
+      'FAILED TO DELETE PROFILE PHOTO:',
+      error
+    );
+    throw error;
+  }
+};
 
 // ----------------------------------------
 // CREATE DEVELOPER PROFILE

@@ -17,6 +17,8 @@ import {
   Profile,
   updateProfile,
   saveUserProfile,
+  uploadProfilePhoto,
+  deleteProfilePhoto,
 } from '../data/profiles';
 
 type ProfileEditorProps = {
@@ -373,16 +375,23 @@ export default function ProfileEditor({
     const savePhotos = async (
       newPhotos: string[]
     ) => {
-      setPhotos(newPhotos);
-
       try {
+        console.log('📸 SAVING PHOTOS:', newPhotos);
+
         if (isUserProfile) {
           const updatedProfile =
             await saveUserProfile({
               photos: newPhotos,
             });
 
+          setPhotos(updatedProfile.photos);
           onUserProfileChange(updatedProfile);
+
+          console.log(
+            '📸 USER PHOTOS SAVED:',
+            updatedProfile.photos
+          );
+
           return;
         }
 
@@ -392,6 +401,8 @@ export default function ProfileEditor({
               photos: newPhotos,
             });
 
+          setPhotos(updatedProfile.photos);
+
           onProfilesChange(
             profiles.map((profile) =>
               profile.id === profileId
@@ -399,12 +410,19 @@ export default function ProfileEditor({
                 : profile
             )
           );
+
+          console.log(
+            '📸 DEVELOPER PHOTOS SAVED:',
+            updatedProfile.photos
+          );
         }
       } catch (error) {
         console.error(
           'FAILED TO SAVE PHOTOS:',
           error
         );
+
+        throw error;
       }
     };
 
@@ -475,16 +493,52 @@ export default function ProfileEditor({
                 return;
               }
 
-              const newPhotos = [...photos];
-              newPhotos[index] = uri;
+              try {
+                console.log('📸 LOCAL URI:', uri);
 
-              savePhotos(
-                newPhotos.filter(
-                  (photo) => photo !== ''
-                )
-              );
+                const currentProfileId = isUserProfile
+                  ? userProfile?.id ?? 0
+                  : profileId ?? 0;
+
+                console.log(
+                  '📸 UPLOADING FOR PROFILE:',
+                  currentProfileId
+                );
+
+                const photoUrl =
+                  await uploadProfilePhoto(
+                    uri,
+                    currentProfileId
+                  );
+
+                console.log(
+                  '📸 SUPABASE PHOTO URL:',
+                  photoUrl
+                );
+
+                const newPhotos = [...photos];
+
+                newPhotos[index] = photoUrl;
+
+                await savePhotos(
+                  newPhotos.filter(
+                    (photo) => photo !== ''
+                  )
+                );
+              } catch (error) {
+                console.error(
+                  'FAILED TO SAVE PHOTO:',
+                  error
+                );
+
+                Alert.alert(
+                  'Error',
+                  'Could not upload your photo.'
+                );
+              }
             },
           },
+
           {
             text: 'Take Photo Now',
             onPress: async () => {
@@ -494,16 +548,52 @@ export default function ProfileEditor({
                 return;
               }
 
-              const newPhotos = [...photos];
-              newPhotos[index] = uri;
+              try {
+                console.log('📸 LOCAL CAMERA URI:', uri);
 
-              savePhotos(
-                newPhotos.filter(
-                  (photo) => photo !== ''
-                )
-              );
+                const currentProfileId = isUserProfile
+                  ? userProfile?.id ?? 0
+                  : profileId ?? 0;
+
+                console.log(
+                  '📸 UPLOADING CAMERA PHOTO FOR PROFILE:',
+                  currentProfileId
+                );
+
+                const photoUrl =
+                  await uploadProfilePhoto(
+                    uri,
+                    currentProfileId
+                  );
+
+                console.log(
+                  '📸 SUPABASE CAMERA PHOTO URL:',
+                  photoUrl
+                );
+
+                const newPhotos = [...photos];
+
+                newPhotos[index] = photoUrl;
+
+                await savePhotos(
+                  newPhotos.filter(
+                    (photo) => photo !== ''
+                  )
+                );
+              } catch (error) {
+                console.error(
+                  'FAILED TO SAVE PHOTO:',
+                  error
+                );
+
+                Alert.alert(
+                  'Error',
+                  'Could not upload your photo.'
+                );
+              }
             },
           },
+
           {
             text: 'Cancel',
             style: 'cancel',
@@ -521,16 +611,40 @@ export default function ProfileEditor({
             text: 'Cancel',
             style: 'cancel',
           },
+
           {
             text: 'Remove',
             style: 'destructive',
-            onPress: () => {
-              const newPhotos = photos.filter(
-                (_, photoIndex) =>
-                  photoIndex !== index
-              );
 
-              savePhotos(newPhotos);
+            onPress: async () => {
+              const photoToRemove = photos[index];
+
+              if (!photoToRemove) {
+                return;
+              }
+
+              try {
+                await deleteProfilePhoto(
+                  photoToRemove
+                );
+
+                const newPhotos = photos.filter(
+                  (_, photoIndex) =>
+                    photoIndex !== index
+                );
+
+                await savePhotos(newPhotos);
+              } catch (error) {
+                console.error(
+                  'FAILED TO REMOVE PHOTO:',
+                  error
+                );
+
+                Alert.alert(
+                  'Error',
+                  'Could not remove your photo.'
+                );
+              }
             },
           },
         ]

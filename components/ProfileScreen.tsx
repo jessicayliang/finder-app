@@ -19,6 +19,8 @@ import {
   Profile,
   fetchUserProfile,
   saveUserProfile,
+  uploadProfilePhoto,
+  deleteProfilePhoto,
 } from '../data/profiles';
 
 type ProfileScreenProps = {
@@ -390,13 +392,20 @@ export default function ProfileScreen({
                 });
 
               if (!result.canceled) {
-                const currentPhotos = profile?.photos ?? [];
-
-                const newPhotos = [...currentPhotos];
-
-                newPhotos[index] = result.assets[0].uri;
+                const localUri = result.assets[0].uri;
 
                 try {
+                  const currentPhotos = profile?.photos ?? [];
+
+                  const photoUrl = await uploadProfilePhoto(
+                    localUri,
+                    profile?.id ?? 0
+                  );
+
+                  const newPhotos = [...currentPhotos];
+
+                  newPhotos[index] = photoUrl;
+
                   const updatedProfile =
                     await saveUserProfile({
                       photos: newPhotos,
@@ -443,13 +452,20 @@ export default function ProfileScreen({
                 });
 
               if (!result.canceled) {
-                const currentPhotos = profile?.photos ?? [];
-
-                const newPhotos = [...currentPhotos];
-
-                newPhotos[index] = result.assets[0].uri;
+                const localUri = result.assets[0].uri;
 
                 try {
+                  const currentPhotos = profile?.photos ?? [];
+
+                  const photoUrl = await uploadProfilePhoto(
+                    localUri,
+                    profile?.id ?? 0
+                  );
+
+                  const newPhotos = [...currentPhotos];
+
+                  newPhotos[index] = photoUrl;
+
                   const updatedProfile =
                     await saveUserProfile({
                       photos: newPhotos,
@@ -484,8 +500,9 @@ export default function ProfileScreen({
 
     const removePhoto = async (index: number) => {
       const currentPhotos = profile?.photos ?? [];
+      const photoUrl = currentPhotos[index];
 
-      if (!currentPhotos[index]) {
+      if (!photoUrl) {
         return;
       }
 
@@ -495,6 +512,16 @@ export default function ProfileScreen({
       newPhotos.splice(index, 1);
 
       try {
+        // Delete the actual file from Supabase Storage.
+        if (
+          photoUrl.includes(
+            '/storage/v1/object/public/profile-photos/'
+          )
+        ) {
+          await deleteProfilePhoto(photoUrl);
+        }
+
+        // Remove the URL from the profile record.
         const updatedProfile = await saveUserProfile({
           photos: newPhotos,
         });
