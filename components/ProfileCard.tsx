@@ -3,6 +3,7 @@ import {
   Animated,
   Image,
   PanResponder,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -11,16 +12,10 @@ import {
 import { Profile } from '../data/profiles';
 import { saveUserProfile, updateProfile } from '../data/profiles';
 
-type ProfileCardProps = {
-  profile: Profile;
-  onSwipe: () => void;
-  isBackground?: boolean;
-  stackOffset?: number;
-};
-
 export default function ProfileCard({
   profile,
   onSwipe,
+  onOpenProfile,
   isBackground = false,
   stackOffset = 0,
 }: ProfileCardProps) {
@@ -185,7 +180,10 @@ export default function ProfileCard({
         </>
       )}
 
-      <View style={styles.profileInfo}>
+      <Pressable
+        style={styles.profileInfo}
+        onPress={() => onOpenProfile(profile)}
+      >
         <Text style={styles.name}>
           {profile.name}, {profile.age}
         </Text>
@@ -193,7 +191,7 @@ export default function ProfileCard({
         <Text style={styles.distance}>
           {profile.distance} miles away
         </Text>
-      </View>
+      </Pressable>
     </Animated.View>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
+import ProfileDetailsScreen from './components/ProfileDetailsScreen';
 
 import {
   fetchProfiles,
@@ -16,7 +17,8 @@ type Screen =
   | 'swipe'
   | 'profile'
   | 'developer'
-  | 'profileEditor';
+  | 'profileEditor'
+  | 'profileDetails';
 
 export default function App() {
 
@@ -28,6 +30,9 @@ export default function App() {
 
   const [screen, setScreen] =
     useState<Screen>('swipe');
+
+  const [selectedProfile, setSelectedProfile] =
+    useState<Profile | null>(null);
 
   const [editingProfileId, setEditingProfileId] =
     useState<number | null>(null);
@@ -89,8 +94,6 @@ export default function App() {
 
       {/* SWIPE SCREEN */}
 
-      {/* SWIPE SCREEN */}
-
       {screen === 'swipe' && (
         <>
           <View style={styles.header}>
@@ -116,6 +119,7 @@ export default function App() {
                     key={`background-${nextProfile.id}`}
                     profile={nextProfile}
                     onSwipe={() => {}}
+                    onOpenProfile={() => {}}
                     isBackground
                     stackOffset={8}
                   />
@@ -127,6 +131,10 @@ export default function App() {
                   <ProfileCard
                     key={`current-${currentProfile.id}`}
                     profile={currentProfile}
+                    onOpenProfile={(profile) => {
+                      setSelectedProfile(profile);
+                      setScreen('profileDetails');
+                    }}
                     onSwipe={() => {
                       if (profiles.length > 0) {
                         setCurrentProfileIndex(
@@ -193,7 +201,20 @@ export default function App() {
         </>
       )}
 
-      {/* IVY PROFILE */}
+      {/* PROFILE DETAILS */}
+
+      {screen === 'profileDetails' &&
+        selectedProfile && (
+          <ProfileDetailsScreen
+            profile={selectedProfile}
+            onBack={() => {
+              setSelectedProfile(null);
+              setScreen('swipe');
+            }}
+          />
+        )}
+
+      {/* USER'S PROFILE */}
 
       {screen === 'profile' && (
         <ProfileScreen
