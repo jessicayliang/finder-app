@@ -40,6 +40,12 @@ export default function App() {
   const [currentCardPhotoIndex, setCurrentCardPhotoIndex] =
     useState(0);
 
+  const [trackedCardProfileId, setTrackedCardProfileId] =
+    useState<number | undefined>(undefined);
+
+  const [cardMountCount, setCardMountCount] =
+    useState(0);
+
   const [editingProfileId, setEditingProfileId] =
     useState<number | null>(null);
 
@@ -75,10 +81,6 @@ export default function App() {
       loadProfiles();
     }, []);
 
-  useEffect(() => {
-      setCurrentCardPhotoIndex(0);
-  }, [safeProfileIndex]);
-
   /*
    * Always keep the index inside the profiles array.
    */
@@ -98,6 +100,14 @@ export default function App() {
           (safeProfileIndex + 1) % profiles.length
         ]
       : undefined;
+
+  if (
+      currentProfile &&
+      currentProfile.id !== trackedCardProfileId
+    ) {
+      setTrackedCardProfileId(currentProfile.id);
+      setCurrentCardPhotoIndex(0);
+    }
 
   return (
     <View style={styles.container}>
@@ -126,7 +136,7 @@ export default function App() {
 
                 {nextProfile && (
                   <ProfileCard
-                    key="background-card"
+                    key={`background-card-${cardMountCount}`}
                     profile={nextProfile}
                     photoIndex={0}
                     onPhotoIndexChange={() => {}}
@@ -141,7 +151,7 @@ export default function App() {
 
                 {currentProfile && (
                   <ProfileCard
-                    key="current-card"
+                    key={`current-card-${cardMountCount}`}
                     profile={currentProfile}
                     photoIndex={currentCardPhotoIndex}
                     onPhotoIndexChange={setCurrentCardPhotoIndex}
@@ -152,6 +162,7 @@ export default function App() {
                     }}
                     onSwipe={() => {
                       if (profiles.length > 0) {
+                        setCardMountCount((count) => count + 1);
                         setCurrentProfileIndex(
                           (currentIndex) =>
                             (currentIndex + 1) %

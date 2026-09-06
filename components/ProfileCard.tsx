@@ -13,6 +13,7 @@ import { Profile } from '../data/profiles';
 import { saveUserProfile, updateProfile } from '../data/profiles';
 
 type ProfileCardProps = {
+  profile: Profile;
   onSwipe: () => void;
   onOpenProfile: (profile: Profile, photoIndex: number) => void;
   photoIndex: number;
@@ -31,6 +32,7 @@ export default function ProfileCard({
   stackOffset = 0,
 }: ProfileCardProps) {
   const position = useRef(new Animated.ValueXY()).current;
+  const [imageLoadAttempt, setImageLoadAttempt] = useState(0);
 
   const backgroundPosition = {
     transform: [],
@@ -39,6 +41,10 @@ export default function ProfileCard({
   useEffect(() => {
     position.setValue({ x: 0, y: 0 });
   }, [profile.id]);
+
+  useEffect(() => {
+      setImageLoadAttempt(0);
+  }, [profile.id, photoIndex]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -108,9 +114,15 @@ export default function ProfileCard({
       <View style={styles.photoPlaceholder}>
         {profile.photos.length > 0 ? (
           <Image
+            key={imageLoadAttempt}
             source={{ uri: profile.photos[photoIndex] }}
             style={styles.profilePhoto}
             resizeMode="cover"
+            onError={() => {
+                setImageLoadAttempt((attempt) =>
+                    attempt < 3 ? attempt + 1 : attempt
+                );
+            }}
           />
         ) : (
           <Text style={styles.photoText}>PHOTO</Text>
