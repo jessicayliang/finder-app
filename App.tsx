@@ -37,6 +37,9 @@ export default function App() {
   const [selectedPhotoIndex, setSelectedPhotoIndex] =
     useState(0);
 
+  const [currentCardPhotoIndex, setCurrentCardPhotoIndex] =
+    useState(0);
+
   const [editingProfileId, setEditingProfileId] =
     useState<number | null>(null);
 
@@ -71,6 +74,10 @@ export default function App() {
 
       loadProfiles();
     }, []);
+
+  useEffect(() => {
+      setCurrentCardPhotoIndex(0);
+  }, [safeProfileIndex]);
 
   /*
    * Always keep the index inside the profiles array.
@@ -121,6 +128,8 @@ export default function App() {
                   <ProfileCard
                     key={`background-${nextProfile.id}`}
                     profile={nextProfile}
+                    photoIndex={0}
+                    onPhotoIndexChange={() => {}}
                     onSwipe={() => {}}
                     onOpenProfile={() => {}}
                     isBackground
@@ -134,6 +143,8 @@ export default function App() {
                   <ProfileCard
                     key={`current-${currentProfile.id}`}
                     profile={currentProfile}
+                    photoIndex={currentCardPhotoIndex}
+                    onPhotoIndexChange={setCurrentCardPhotoIndex}
                     onOpenProfile={(profile, photoIndex) => {
                       setSelectedProfile(profile);
                       setSelectedPhotoIndex(photoIndex);

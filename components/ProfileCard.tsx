@@ -15,6 +15,8 @@ import { saveUserProfile, updateProfile } from '../data/profiles';
 type ProfileCardProps = {
   onSwipe: () => void;
   onOpenProfile: (profile: Profile, photoIndex: number) => void;
+  photoIndex: number;
+  onPhotoIndexChange: (index: number) => void;
   isBackground?: boolean;
   stackOffset?: number;
 };
@@ -23,11 +25,12 @@ export default function ProfileCard({
   profile,
   onSwipe,
   onOpenProfile,
+  photoIndex,
+  onPhotoIndexChange,
   isBackground = false,
   stackOffset = 0,
 }: ProfileCardProps) {
   const position = useRef(new Animated.ValueXY()).current;
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
   const backgroundPosition = {
     transform: [],
@@ -35,7 +38,6 @@ export default function ProfileCard({
 
   useEffect(() => {
     position.setValue({ x: 0, y: 0 });
-    setCurrentPhotoIndex(0);
   }, [profile.id]);
 
   const panResponder = useRef(
@@ -106,7 +108,7 @@ export default function ProfileCard({
       <View style={styles.photoPlaceholder}>
         {profile.photos.length > 0 ? (
           <Image
-            source={{ uri: profile.photos[currentPhotoIndex] }}
+            source={{ uri: profile.photos[photoIndex] }}
             style={styles.profilePhoto}
             resizeMode="cover"
           />
@@ -121,7 +123,7 @@ export default function ProfileCard({
                 key={index}
                 style={[
                   styles.photoIndicator,
-                  index === currentPhotoIndex && styles.photoIndicatorActive,
+                  index === photoIndex && styles.photoIndicatorActive,
                 ]}
               />
             ))}
@@ -133,15 +135,15 @@ export default function ProfileCard({
             <View
               style={styles.photoTapLeft}
               onTouchEnd={() => {
-                setCurrentPhotoIndex((index) => Math.max(0, index - 1));
+                onPhotoIndexChange(Math.max(0, photoIndex - 1));
               }}
             />
 
             <View
               style={styles.photoTapRight}
               onTouchEnd={() => {
-                setCurrentPhotoIndex((index) =>
-                  Math.min(profile.photos.length - 1, index + 1)
+                onPhotoIndexChange(
+                  Math.min(profile.photos.length - 1, photoIndex + 1)
                 );
               }}
             />
@@ -189,7 +191,7 @@ export default function ProfileCard({
 
       <Pressable
         style={styles.profileInfo}
-        onPress={() => onOpenProfile(profile, currentPhotoIndex)}
+        onPress={() => onOpenProfile(profile, photoIndex)}
       >
         <Text style={styles.name}>
           {profile.name}, {profile.age}
