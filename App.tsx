@@ -126,7 +126,7 @@ export default function App() {
 
                 {nextProfile && (
                   <ProfileCard
-                    key={`background-${nextProfile.id}`}
+                    key="background-card"
                     profile={nextProfile}
                     photoIndex={0}
                     onPhotoIndexChange={() => {}}
@@ -141,7 +141,7 @@ export default function App() {
 
                 {currentProfile && (
                   <ProfileCard
-                    key={`current-${currentProfile.id}`}
+                    key="current-card"
                     profile={currentProfile}
                     photoIndex={currentCardPhotoIndex}
                     onPhotoIndexChange={setCurrentCardPhotoIndex}
