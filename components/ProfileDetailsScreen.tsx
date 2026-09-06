@@ -92,11 +92,9 @@ export default function ProfileDetailsScreen({
               <Pressable
                 style={styles.photoTapLeft}
                 onPress={() => {
-                  setCurrentPhotoIndex((index) => {
-                      const next = Math.max(0, index - 1);
-                      onPhotoIndexChange?.(next);
-                      return next;
-                  });
+                  const next = Math.max(0, currentPhotoIndex - 1);
+                  setCurrentPhotoIndex(next);
+                  onPhotoIndexChange?.(next);
                 }}
               />
             )}
@@ -107,14 +105,12 @@ export default function ProfileDetailsScreen({
               <Pressable
                 style={styles.photoTapRight}
                 onPress={() => {
-                  setCurrentPhotoIndex((index) => {
-                      const next = Math.min(
-                          profile.photos.length - 1,
-                          index + 1
-                      );
-                      onPhotoIndexChange?.(next);
-                      return next;
-                   });
+                  const next = Math.min(
+                      profile.photos.length - 1,
+                      currentPhotoIndex + 1
+                  );
+                  setCurrentPhotoIndex(next);
+                  onPhotoIndexChange?.(next);
                 }}
               />
             )}
