@@ -34,6 +34,9 @@ export default function App() {
   const [selectedProfile, setSelectedProfile] =
     useState<Profile | null>(null);
 
+  const [selectedPhotoIndex, setSelectedPhotoIndex] =
+    useState(0);
+
   const [editingProfileId, setEditingProfileId] =
     useState<number | null>(null);
 
@@ -131,8 +134,9 @@ export default function App() {
                   <ProfileCard
                     key={`current-${currentProfile.id}`}
                     profile={currentProfile}
-                    onOpenProfile={(profile) => {
+                    onOpenProfile={(profile, photoIndex) => {
                       setSelectedProfile(profile);
+                      setSelectedPhotoIndex(photoIndex);
                       setScreen('profileDetails');
                     }}
                     onSwipe={() => {
@@ -207,6 +211,7 @@ export default function App() {
         selectedProfile && (
           <ProfileDetailsScreen
             profile={selectedProfile}
+            initialPhotoIndex={selectedPhotoIndex}
             onBack={() => {
               setSelectedProfile(null);
               setScreen('swipe');

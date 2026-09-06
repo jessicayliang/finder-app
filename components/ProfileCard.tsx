@@ -12,6 +12,13 @@ import {
 import { Profile } from '../data/profiles';
 import { saveUserProfile, updateProfile } from '../data/profiles';
 
+type ProfileCardProps = {
+  onSwipe: () => void;
+  onOpenProfile: (profile: Profile, photoIndex: number) => void;
+  isBackground?: boolean;
+  stackOffset?: number;
+};
+
 export default function ProfileCard({
   profile,
   onSwipe,
@@ -182,7 +189,7 @@ export default function ProfileCard({
 
       <Pressable
         style={styles.profileInfo}
-        onPress={() => onOpenProfile(profile)}
+        onPress={() => onOpenProfile(profile, currentPhotoIndex)}
       >
         <Text style={styles.name}>
           {profile.name}, {profile.age}

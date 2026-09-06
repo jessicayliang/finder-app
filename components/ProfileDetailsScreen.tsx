@@ -14,13 +14,17 @@ import { Profile } from '../data/profiles';
 type ProfileDetailsScreenProps = {
   profile: Profile;
   onBack: () => void;
+  initialPhotoIndex?: number;
 };
 
 export default function ProfileDetailsScreen({
   profile,
   onBack,
+  initialPhotoIndex = 0,
 }: ProfileDetailsScreenProps) {
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(
+      Math.min(initialPhotoIndex, Math.max(profile.photos.length - 1, 0))
+  );
   return (
     <View style={styles.container}>
 
