@@ -128,7 +128,7 @@ export default function ProfileCard({
                     `✅ LOAD OK — ${profile.name} (id ${profile.id}) photo ${photoIndex}, attempt ${imageLoadAttempt}`
                 );
             }}
-            onError={() => {
+            onError={(e: any) => {
                 console.log(
                     `🔴 LOAD FAILED — ${profile.name} (id ${profile.id}) photo ${photoIndex}, attempt ${imageLoadAttempt}:`,
                     +                  e.nativeEvent?.error
