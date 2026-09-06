@@ -118,7 +118,21 @@ export default function ProfileCard({
             source={{ uri: profile.photos[photoIndex] }}
             style={styles.profilePhoto}
             resizeMode="cover"
+            onLoadStart={() => {
+                console.log(
+                    `📷 LOAD START — ${profile.name} (id ${profile.id}) photo ${photoIndex}, attempt ${imageLoadAttempt}`
+                );
+            }}
+            onLoad={() => {
+                console.log(
+                    `✅ LOAD OK — ${profile.name} (id ${profile.id}) photo ${photoIndex}, attempt ${imageLoadAttempt}`
+                );
+            }}
             onError={() => {
+                console.log(
+                    `🔴 LOAD FAILED — ${profile.name} (id ${profile.id}) photo ${photoIndex}, attempt ${imageLoadAttempt}:`,
+                    +                  e.nativeEvent?.error
+                );
                 setImageLoadAttempt((attempt) =>
                     attempt < 3 ? attempt + 1 : attempt
                 );
