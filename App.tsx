@@ -234,6 +234,7 @@ export default function App() {
           <ProfileDetailsScreen
             profile={selectedProfile}
             initialPhotoIndex={selectedPhotoIndex}
+            onPhotoIndexChange={setCurrentCardPhotoIndex}
             onBack={() => {
               setSelectedProfile(null);
               setScreen('swipe');
